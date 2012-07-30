@@ -8,6 +8,7 @@ class HTTPClient{
 		$queryParams = array();
 		if(isset($uri["query"])) {
 			parse_str($uri["query"], $queryParams);
+			$uri["query"] = $queryParams;
 		}
 		if(!isset($uri["port"])) {
 			$uri["port"] = self::HTTP_PORT;
