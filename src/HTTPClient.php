@@ -1,6 +1,7 @@
 <?php
 class HTTPClient{
-	const HTTP_PORT = 80;
+	const HTTP_PORT  = 80;
+	const HTTPS_PORT = 443;
 	const BUFFER_SIZE = 1024;
 	private $recieveRest = null;
 	public function extractURL($url) {
@@ -13,51 +14,64 @@ class HTTPClient{
 		if(!isset($uri["port"])) {
 			$uri["port"] = self::HTTP_PORT;
 		}
+		if($uri["scheme"] == "http") {
+			$uri["port"] = self::HTTP_PORT;
+		} else if($uri["scheme"] == "https") {
+			$uri["port"] = self::HTTPS_PORT;
+		} else {
+			throw new Exception("Not surpported schme'".$uri["scheme"]."'");
+		}
+		print_r($uri);
 		return $uri;
+	}
+	public function getConnection($config) {
+		if($config["scheme"] == "https") {
+			$conn = fsockopen('ssl://'.$config["host"], $config["port"], $errno, $errstr, 30);
+		} else if($config["scheme"] == "http") {
+			$conn = fsockopen($config["host"], $config["port"], $errno, $errstr, 30);
+		}
+		if (!$conn) {
+			throw new Exception("Error: $errstr ($errno)");
+		}
+		return $conn;
 	}
 	public function head($url) {
 		$uri = $this->extractURL($url);
 		$host = $uri["host"];
 		$path = $uri["path"];
 		$port = $uri["port"];
-		$conn = fsockopen($host, $port, $errno, $errstr, 30);
-		if (!$conn) {
-			throw new Exception("Error: $errstr ($errno)");
-		} else {
-			$out = "HEAD $path HTTP/1.1\r\n";
-			$out .= "Host: $host\r\n";
-			$out .= "Connection: Close\r\n\r\n";
-			fwrite($conn, $out);
-			$headers = $this->readHeaders($conn);
-			fclose($conn);
-			return $headers;
-		}
+		$conn = $this->getConnection($uri);
+
+		$out = "HEAD $path HTTP/1.1\r\n";
+		$out .= "Host: $host\r\n";
+		$out .= "Connection: Close\r\n\r\n";
+		fwrite($conn, $out);
+		$headers = $this->readHeaders($conn);
+		fclose($conn);
+		return $headers;
 	}
 	public function get($url) {
 		$uri = $this->extractURL($url);
 		$host = $uri["host"];
 		$path = $uri["path"];
 		$port = $uri["port"];
-		$conn = fsockopen($host, $port, $errno, $errstr, 30);
-		if (!$conn) {
-			throw new Exception("Error: $errstr ($errno)");
-		} else {
-			$out = "GET $path HTTP/1.1\r\n";
-			$out .= "Host: $host\r\n";
-			$out .= "Connection: Close\r\n\r\n";
-			fwrite($conn, $out);
-			$headers = $this->readHeaders($conn);
-			print_r($headers);
-			$body = $this->readBody($conn, $headers);
-			fclose($conn);
-			return $body;
-		}
+		$conn = $this->getConnection($uri);
+		$out = "GET $path HTTP/1.1\r\n";
+		$out .= "Host: $host\r\n";
+		$out .= "Connection: Close\r\n\r\n";
+		fwrite($conn, $out);
+		$headers = $this->readHeaders($conn);
+		print_r($headers);
+		$body = $this->readBody($conn, $headers);
+		fclose($conn);
+		return $body;
 	}
 	
 	public function readHeaders($conn) {
 		$headers = array();
 		$buffer = "";
 		$isHTTPStatus = true;
+		$readBytes = 0;
 		while (!feof($conn)) {
 			$str = fgets($conn, self::BUFFER_SIZE);
 			//var_dump($str);
@@ -94,6 +108,10 @@ class HTTPClient{
 					$buffer .= $str[$i];
 				}
 			}
+			$readBytes += strlen($str);
+		}
+		if($readBytes == 0) {
+			throw new Exception("Read bytes equal 0.");
 		}
 		return $headers;
 	}
