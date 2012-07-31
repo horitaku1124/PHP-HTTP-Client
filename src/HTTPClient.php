@@ -18,7 +18,10 @@ class HTTPClient{
 			$uri["port"] = self::HTTP_PORT;
 		} else if($uri["scheme"] == "https") {
 			$uri["port"] = self::HTTPS_PORT;
+		} else {
+			throw new Exception("Not surpported schme'".$uri["scheme"]."'");
 		}
+		print_r($uri);
 		return $uri;
 	}
 	public function getConnection($config) {
@@ -26,8 +29,6 @@ class HTTPClient{
 			$conn = fsockopen('ssl://'.$config["host"], $config["port"], $errno, $errstr, 30);
 		} else if($config["scheme"] == "http") {
 			$conn = fsockopen($config["host"], $config["port"], $errno, $errstr, 30);
-		} else {
-			throw new Exception("Not surpported schme'".$uri["scheme"]."'");
 		}
 		if (!$conn) {
 			throw new Exception("Error: $errstr ($errno)");
@@ -60,7 +61,7 @@ class HTTPClient{
 		$out .= "Connection: Close\r\n\r\n";
 		fwrite($conn, $out);
 		$headers = $this->readHeaders($conn);
-		//print_r($headers);
+		print_r($headers);
 		$body = $this->readBody($conn, $headers);
 		fclose($conn);
 		return $body;
