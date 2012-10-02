@@ -2,7 +2,5 @@
 require_once "../src/HTTPClient.php";
 
 $http = new HTTPClient();
-$str = $http->head("http://github.com/");
-print_r($str);
-$str = $http->head("https://github.com/");
+$str = $http->get("http://www.yahoo.co.jp/", "124.83.235.204");
 print_r($str);

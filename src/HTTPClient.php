@@ -49,9 +49,10 @@ class HTTPClient{
 		fclose($conn);
 		return $headers;
 	}
-	public function get($url) {
+	public function get($url, $swithHost = NULL) {
 		$uri = $this->extractURL($url);
 		$host = $uri["host"];
+		$uri["host"] = isset($swithHost) ? $swithHost : $host;
 		$path = $uri["path"];
 		$port = $uri["port"];
 		$conn = $this->getConnection($uri);
